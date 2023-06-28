@@ -1,6 +1,7 @@
 use cxx::SharedPtr;
 
 use super::bindings::paludis_packageid_metadata_exist;
+use super::bindings::paludis_packageid_metadata_key;
 use super::bindings::paludis_packageid_metadata_names;
 use super::bindings::paludis_packageid_name;
 use super::bindings::paludis_packageid_short_description;
@@ -10,6 +11,7 @@ use super::bindings::paludis_versionspec_eq;
 use super::bindings::paludis_versionspec_is_scm;
 use super::bindings::paludis_versionspec_valid;
 
+use super::metadata::new_metadata_key;
 use super::MetadataKey;
 use super::Repository;
 
@@ -17,6 +19,17 @@ use super::Repository;
 pub struct VersionSpec(String);
 
 impl VersionSpec {
+    /// Create a new valid version spec
+    pub fn new(v: &str) -> Option<Self> {
+        let res = Self(v.to_owned());
+
+        if res.is_valid() {
+            Some(res)
+        } else {
+            None
+        }
+    }
+
     /// Is this an -scm package, or something pretending to be one?
     // FIXME : Error handeling : cant tell if aspell-pt_BR-20131030.12.0 is scm (version validity)
     pub fn is_scm(&self) -> bool {
@@ -55,14 +68,14 @@ impl PartialOrd for VersionSpec {
         let cmp = paludis_versionspec_compare(self.0.as_str(), other.0.as_str());
 
         if cmp == 0 {
-            return Some(std::cmp::Ordering::Equal);
+            Some(std::cmp::Ordering::Equal)
         } else if cmp.is_negative() {
-            return Some(std::cmp::Ordering::Less);
+            Some(std::cmp::Ordering::Less)
         } else if cmp.is_positive() {
-            return Some(std::cmp::Ordering::Greater);
+            Some(std::cmp::Ordering::Greater)
         } else {
             // Classic quantum bug
-            return None;
+            None
         }
     }
 }
@@ -102,17 +115,41 @@ impl PackageID {
     }
 
     pub fn short_description(&self) -> String {
-        paludis_packageid_short_description(&self.ptr)
+        if self.metadata_exist("SUMMARY") {
+            paludis_packageid_short_description(&self.ptr)
+        } else {
+            "".to_owned()
+        }
     }
 
     /// Test if a metadata is stored at the key provided, in this repository.
     pub fn metadata_exist(&self, metadata: &str) -> bool {
-        return paludis_packageid_metadata_exist(self.ptr.to_owned(), metadata);
+        paludis_packageid_metadata_exist(self.ptr.to_owned(), metadata)
     }
 
     /// Test if a metadata is stored at the key provided, in this repository.
     pub fn metadata_names(&self) -> Vec<String> {
-        return paludis_packageid_metadata_names(self.ptr.to_owned());
+        paludis_packageid_metadata_names(self.ptr.to_owned())
+    }
+
+    /// Get metadata key by name
+    pub fn metadata_key(&self, metadata: &str) -> Option<MetadataKey> {
+        if !self.metadata_exist(metadata) {
+            None
+        } else {
+            Some(new_metadata_key(paludis_packageid_metadata_key(
+                self.ptr.to_owned(),
+                metadata,
+            )))
+        }
+    }
+
+    /// Same as metadata_key, but the metadata key existancy is not checked: could segfault.
+    pub unsafe fn metadata_key_unchecked(&self, metadata: &str) -> MetadataKey {
+        new_metadata_key(paludis_packageid_metadata_key(
+            self.ptr.to_owned(),
+            metadata,
+        ))
     }
 }
 

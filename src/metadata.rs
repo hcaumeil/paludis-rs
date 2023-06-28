@@ -1,9 +1,22 @@
+use core::panic;
+
 use cxx::SharedPtr;
 
+use super::bindings::paludis_dependencyspectree_all_len;
+use super::bindings::paludis_dependencyspectree_all_val;
+use super::bindings::paludis_dependencyspectree_type;
 use super::bindings::paludis_metadata_human_name;
 use super::bindings::paludis_metadata_raw_name;
 use super::bindings::paludis_metadata_type;
+use super::bindings::paludis_metadata_type_str;
+use super::bindings::paludis_metadata_value_dependencyspectree;
+use super::bindings::paludis_metadata_value_str;
+use super::bindings::paludis_metadata_value_string;
+use super::bindings::paludis_metadata_value_type;
 
+use super::dep_spec::new_dependencyspectree;
+
+use super::DependencySpecTree;
 use super::PackageID;
 use super::Repository;
 
@@ -93,4 +106,38 @@ impl MetadataKey {
     pub fn key_type(&self) -> MetadataKeyType {
         paludis_metadata_type(self.ptr.to_owned()).into()
     }
+
+    pub fn key_type_str(&self) -> String {
+        paludis_metadata_type_str(self.ptr.to_owned())
+    }
+
+    /// Use paludis to get the value behind a MetadataKey, and use paludis to stringify it.
+    pub fn value(&self) -> MetadataValue {
+        match paludis_metadata_value_type(self.ptr.to_owned()) {
+            0 => MetadataValue::String(paludis_metadata_value_string(self.ptr.to_owned())),
+            12 => {
+                println!("{}", paludis_metadata_value_str(self.ptr.clone()));
+                let a = paludis_metadata_value_dependencyspectree(self.ptr.to_owned());
+
+                MetadataValue::DependencySpecTree(new_dependencyspectree(a))
+            }
+            t => {
+                // MetadataValue::String(t.to_string() + " " + &self.value_str())
+                panic!("panic: unable to match MetadataValue type")
+            }
+        }
+    }
+
+    /// Use paludis to get the value behind a MetadataKey, and use paludis to stringify it.
+    /// Prefer using other functions because you will have to do parsing and not all metadata can be directly transated to string.    
+    pub fn value_str(&self) -> String {
+        paludis_metadata_value_str(self.ptr.to_owned())
+    }
+}
+
+#[derive(Debug)]
+pub enum MetadataValue {
+    String(String),
+    Slot,
+    DependencySpecTree(DependencySpecTree),
 }

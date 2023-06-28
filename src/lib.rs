@@ -29,6 +29,7 @@
 //! ```
 
 mod bindings;
+mod dep_spec;
 mod environment;
 mod metadata;
 mod packageid;
@@ -36,9 +37,11 @@ mod repository;
 mod test;
 
 pub use bindings::extract_host_from_url;
+pub use dep_spec::DependencySpecTree;
 pub use environment::Environment;
 pub use metadata::MetadataKey;
 pub use metadata::MetadataKeyType;
+pub use metadata::MetadataValue;
 pub use packageid::PackageID;
 pub use packageid::VersionSpec;
 pub use repository::Repository;
