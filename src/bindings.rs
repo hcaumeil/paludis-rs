@@ -356,6 +356,15 @@ pub fn paludis_packageid_short_description(p: &SharedPtr<u64>) -> String {
     }
 }
 
+pub fn paludis_packageid_repository_name(p: &SharedPtr<u64>) -> String {
+    unsafe {
+        let temp = cpp!([p as "std::shared_ptr<const paludis::PackageID>*"] -> *mut CxxString as "const std::string *" {
+            return new std::string(stringify((*p)->repository_name()));
+        });
+        String::from((*temp).to_str().expect("str conversion goes wrong"))
+    }
+}
+
 pub fn paludis_versionspec_is_scm(v: &str) -> bool {
     let arg = CString::new(v).unwrap();
     let ptr = arg.as_ptr();

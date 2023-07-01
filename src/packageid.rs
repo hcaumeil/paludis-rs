@@ -4,6 +4,7 @@ use super::bindings::paludis_packageid_metadata_exist;
 use super::bindings::paludis_packageid_metadata_key;
 use super::bindings::paludis_packageid_metadata_names;
 use super::bindings::paludis_packageid_name;
+use super::bindings::paludis_packageid_repository_name;
 use super::bindings::paludis_packageid_short_description;
 use super::bindings::paludis_packageid_version;
 use super::bindings::paludis_versionspec_compare;
@@ -120,6 +121,11 @@ impl PackageID {
         } else {
             "".to_owned()
         }
+    }
+
+    /// Name of the repository the package came from
+    pub fn repository_name(&self) -> String {
+        paludis_packageid_repository_name(&self.ptr.to_owned())
     }
 
     /// Test if a metadata is stored at the key provided, in this repository.
