@@ -116,10 +116,10 @@ impl MetadataKey {
         match paludis_metadata_value_type(self.ptr.to_owned()) {
             0 => MetadataValue::String(paludis_metadata_value_string(self.ptr.to_owned())),
             12 => {
-                println!("{}", paludis_metadata_value_str(self.ptr.clone()));
-                let a = paludis_metadata_value_dependencyspectree(self.ptr.to_owned());
-
-                MetadataValue::DependencySpecTree(new_dependencyspectree(a))
+                // println!("{}", paludis_metadata_value_str(self.ptr.clone()));
+                MetadataValue::DependencySpecTree(new_dependencyspectree(
+                    paludis_metadata_value_dependencyspectree(self.ptr.to_owned()),
+                ))
             }
             t => {
                 // MetadataValue::String(t.to_string() + " " + &self.value_str())

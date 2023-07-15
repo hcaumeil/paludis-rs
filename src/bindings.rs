@@ -1265,6 +1265,158 @@ pub fn paludis_dependencyspectree_package(k: SharedPtr<u64>) -> SharedPtr<u64> {
     }
 }
 
+pub fn paludis_dependencyspectree_conditional_depspecdata(k: SharedPtr<u64>) -> SharedPtr<u64> {
+    unsafe {
+        cpp!([k as "std::shared_ptr<const paludis::spec_tree_internals::BasicNode<paludis::DependencySpecTree>>"] -> SharedPtr<u64> as "std::shared_ptr<const paludis::ConditionalDepSpecData>" {
+              class DependencySpecTreeVisitor {
+              public:
+                std::shared_ptr<const paludis::ConditionalDepSpecData> res = nullptr;
+                DependencySpecTreeVisitor() {}
+
+                void visit(const paludis::DependencySpecTree::NodeType<
+                           paludis::NamedSetDepSpec>::Type &) {
+                }
+
+                void visit(const paludis::DependencySpecTree::NodeType<
+                           paludis::DependenciesLabelsDepSpec>::Type &) {}
+
+                void visit(const paludis::DependencySpecTree::NodeType<
+                           paludis::PackageDepSpec>::Type &) {
+                }
+
+                void visit(
+                    const paludis::DependencySpecTree::NodeType<paludis::BlockDepSpec>::Type
+                        &) {
+                }
+
+                void visit(const paludis::DependencySpecTree::NodeType<
+                           paludis::ConditionalDepSpec>::Type &node) {
+                    res = node.spec()->data();
+                }
+
+                void
+                visit(const paludis::DependencySpecTree::NodeType<paludis::AnyDepSpec>::Type
+                          &) {
+                }
+
+                void
+                visit(const paludis::DependencySpecTree::NodeType<paludis::AllDepSpec>::Type
+                          &) {
+                }
+              };
+
+            DependencySpecTreeVisitor v = DependencySpecTreeVisitor();
+            k->accept(v);
+            return v.res;
+        })
+    }
+}
+
+pub fn paludis_dependencyspectree_conditional_depspec_len(k: SharedPtr<u64>) -> u64 {
+    unsafe {
+        cpp!([k as "std::shared_ptr<const paludis::spec_tree_internals::BasicNode<paludis::DependencySpecTree>>"] -> u64 as "uint64_t" {
+              class DependencySpecTreeVisitor {
+              public:
+                uint64_t res = 0;
+                DependencySpecTreeVisitor() {}
+
+                void visit(const paludis::DependencySpecTree::NodeType<
+                           paludis::NamedSetDepSpec>::Type &) {
+                }
+
+                void visit(const paludis::DependencySpecTree::NodeType<
+                           paludis::DependenciesLabelsDepSpec>::Type &) {}
+
+                void visit(const paludis::DependencySpecTree::NodeType<
+                           paludis::PackageDepSpec>::Type &) {
+                }
+
+                void visit(
+                    const paludis::DependencySpecTree::NodeType<paludis::BlockDepSpec>::Type
+                        &) {
+                }
+
+                void visit(const paludis::DependencySpecTree::NodeType<
+                           paludis::ConditionalDepSpec>::Type &node) {
+                    for (auto n : node)
+                        res++;
+                }
+
+                void
+                visit(const paludis::DependencySpecTree::NodeType<paludis::AnyDepSpec>::Type
+                          &) {
+                }
+
+                void
+                visit(const paludis::DependencySpecTree::NodeType<paludis::AllDepSpec>::Type
+                          &) {
+                }
+              };
+
+            DependencySpecTreeVisitor v = DependencySpecTreeVisitor();
+            k->accept(v);
+            return v.res;
+        })
+    }
+}
+
+pub fn paludis_dependencyspectree_conditional_depspec_val(
+    k: SharedPtr<u64>,
+    i: u64,
+) -> SharedPtr<u64> {
+    unsafe {
+        cpp!([k as "std::shared_ptr<const paludis::spec_tree_internals::BasicNode<paludis::DependencySpecTree>>", i as "uint64_t"] -> SharedPtr<u64> as "std::shared_ptr<const paludis::spec_tree_internals::BasicNode<paludis::DependencySpecTree>>" {
+              class DependencySpecTreeVisitor {
+              public:
+                uint64_t val;
+                std::shared_ptr<const paludis::spec_tree_internals::BasicNode<paludis::DependencySpecTree>> res = nullptr;
+                DependencySpecTreeVisitor(const uint64_t v) : val(v) {}
+
+                void visit(const paludis::DependencySpecTree::NodeType<
+                           paludis::NamedSetDepSpec>::Type &) {
+                }
+
+                void visit(const paludis::DependencySpecTree::NodeType<
+                           paludis::DependenciesLabelsDepSpec>::Type &) {}
+
+                void visit(const paludis::DependencySpecTree::NodeType<
+                           paludis::PackageDepSpec>::Type &) {
+                }
+
+                void visit(
+                    const paludis::DependencySpecTree::NodeType<paludis::BlockDepSpec>::Type
+                        &) {
+                }
+
+                void visit(const paludis::DependencySpecTree::NodeType<
+                           paludis::ConditionalDepSpec>::Type &node) {
+                    uint64_t j = 0;
+                    for (auto n : node) {
+                        if (val == j) {
+                            res = n;
+                        }
+                        j++;
+                    }
+                }
+
+                void
+                visit(const paludis::DependencySpecTree::NodeType<paludis::AnyDepSpec>::Type
+                          &) {
+                }
+
+                void
+                visit(const paludis::DependencySpecTree::NodeType<paludis::AllDepSpec>::Type
+                          &) {
+                }
+              };
+
+            DependencySpecTreeVisitor v = DependencySpecTreeVisitor(i);
+            k->accept(v);
+            return v.res;
+        })
+    }
+}
+
 pub fn paludis_dependencyspectree_all_len(k: SharedPtr<u64>) -> u64 {
     unsafe {
         cpp!([k as "std::shared_ptr<const paludis::spec_tree_internals::BasicNode<paludis::DependencySpecTree>>"] -> u64 as "uint64_t" {
@@ -1384,6 +1536,17 @@ pub fn paludis_dependencieslabel_text(l: SharedPtr<u64>) -> String {
         let temp = Box::from_raw(
             cpp!([l as "std::shared_ptr<const paludis::DependenciesLabel>"] -> *mut CxxString as "const std::string *" {
                 return new std::string(l->text());
+            }),
+        );
+        String::from((*temp).to_str().expect("str conversion goes wrong"))
+    }
+}
+
+pub fn paludis_conditional_depspecdata_as_string(c: SharedPtr<u64>) -> String {
+    unsafe {
+        let temp = Box::from_raw(
+            cpp!([c as "std::shared_ptr<const paludis::ConditionalDepSpecData>"] -> *mut CxxString as "const std::string *" {
+                return new std::string(c->as_string());
             }),
         );
         String::from((*temp).to_str().expect("str conversion goes wrong"))

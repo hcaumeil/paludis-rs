@@ -37,6 +37,7 @@ mod repository;
 mod test;
 
 pub use bindings::extract_host_from_url;
+pub use dep_spec::DependenciesLabel;
 pub use dep_spec::DependencySpecTree;
 pub use environment::Environment;
 pub use metadata::MetadataKey;
