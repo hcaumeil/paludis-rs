@@ -30,8 +30,9 @@
 
 mod bindings;
 mod dep_spec;
-mod environment;
+pub mod environment;
 mod metadata;
+mod output_manager;
 mod packageid;
 mod repository;
 mod test;
@@ -43,6 +44,8 @@ pub use environment::Environment;
 pub use metadata::MetadataKey;
 pub use metadata::MetadataKeyType;
 pub use metadata::MetadataValue;
+pub use output_manager::OutputManager;
 pub use packageid::PackageID;
 pub use packageid::VersionSpec;
 pub use repository::Repository;
+pub use repository::SyncResult;

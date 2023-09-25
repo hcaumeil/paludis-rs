@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 use cxx::SharedPtr;
 
+use crate::output_manager::OutputManager;
+
 use super::bindings::paludis_repository_category_names;
 use super::bindings::paludis_repository_metadata_exist;
 use super::bindings::paludis_repository_metadata_key;
@@ -10,6 +12,7 @@ use super::bindings::paludis_repository_name;
 use super::bindings::paludis_repository_package_id_from_canonical_form;
 use super::bindings::paludis_repository_package_ids_canonical_form;
 use super::bindings::paludis_repository_package_names;
+use super::bindings::paludis_repository_sync;
 
 use super::metadata::new_metadata_key;
 use super::packageid::new_package_id;
@@ -17,6 +20,13 @@ use super::Environment;
 use super::MetadataKey;
 use super::MetadataKeyType;
 use super::PackageID;
+
+#[derive(Debug, Clone, Copy)]
+pub enum SyncResult {
+    Success,
+    Skipped,
+    UnknownFailure,
+}
 
 /// A Repository provides a representation of a physical repository to an [`Environment`]
 pub struct Repository {
@@ -67,6 +77,24 @@ impl Repository {
             .flatten()
             .map(|ptr| new_package_id(ptr))
             .collect()
+    }
+
+    pub fn sync(&mut self, source: &str, output_manager: &mut OutputManager) -> SyncResult {
+        let str = paludis_repository_sync(self.ptr.clone(), source, "", output_manager.ptr.clone());
+
+        match str.as_str() {
+            "success" => {
+                output_manager.succeeded();
+                output_manager.flush();
+                SyncResult::Success
+            }
+            "skipped" => {
+                output_manager.succeeded();
+                output_manager.flush();
+                SyncResult::Skipped
+            }
+            "unknown" | _ => SyncResult::UnknownFailure,
+        }
     }
 
     fn string_medata_value(&self, key: &str) -> Option<String> {

@@ -1,6 +1,6 @@
 use cpp::cpp;
 use cxx::{CxxString, CxxVector, SharedPtr};
-use std::ffi::CString;
+use std::{collections::HashMap, ffi::CString};
 
 cpp! {{
     #include <iostream>
@@ -88,11 +88,96 @@ pub fn paludis_environment_fetch_repository(e: &SharedPtr<u64>, repo: &str) -> S
     }
 }
 
+pub fn paludis_environment_create_sync_output_manager(
+    e: &SharedPtr<u64>,
+    repo: &str,
+    oe: u8,
+    summary: bool,
+) -> Option<SharedPtr<u64>> {
+    let arg = CString::new(repo).unwrap();
+    let ptr = arg.as_ptr();
+
+    let res = unsafe {
+        cpp!([e as "std::shared_ptr<paludis::Environment>*", ptr as "const char *", oe as "uint8_t", summary as "bool"] -> SharedPtr<u64> as "const std::shared_ptr<paludis::OutputManager>" {
+            try {
+                auto cof = paludis::ClientOutputFeatures();
+                if (summary) {
+                    cof = cof + paludis::cof_summary_at_end;
+                }
+
+                auto out_exclu = paludis::oe_background;
+                if (oe == 1) {
+                    out_exclu = paludis::oe_with_others;
+
+                } else if (oe == 2) {
+                    out_exclu = paludis::oe_exclusive;
+                }
+
+                paludis::CreateOutputManagerForRepositorySyncInfo info(paludis::RepositoryName(ptr),
+                                        out_exclu,
+                                        cof);
+                return (*e)->create_output_manager(info);
+            } catch (...) {
+                return nullptr;
+            }
+        })
+    };
+
+    if res.is_null() {
+        None
+    } else {
+        Some(res)
+    }
+}
+
 pub fn paludis_repository_name(r: SharedPtr<u64>) -> String {
     unsafe {
         let temp = Box::from_raw(
             cpp!([r as "std::shared_ptr<paludis::Repository>"] -> *mut CxxString as "const std::string *" {
               return new std::string(r.get()->name().value());
+            }),
+        );
+        String::from((*temp).to_str().expect("str conversion goes wrong"))
+    }
+}
+
+pub fn paludis_repository_sync(
+    r: SharedPtr<u64>,
+    source: &str,
+    revision: &str,
+    om: SharedPtr<u64>,
+) -> String {
+    let source = CString::new(source).unwrap();
+    let revision = CString::new(revision).unwrap();
+
+    let source_ptr = source.as_ptr();
+    let revision_ptr = revision.as_ptr();
+
+    unsafe {
+        let temp = Box::from_raw(
+            cpp!([r as "std::shared_ptr<paludis::Repository>", source_ptr as "const char *", revision_ptr as "const char *", om as "std::shared_ptr<paludis::OutputManager>"] -> *mut CxxString as "const std::string *" {
+               std::string res = "";
+
+                try
+                {
+                    if (! r->sync(source_ptr, revision_ptr, om))
+                        res = "skipped";
+                    else
+                        res = "success";
+                }
+                catch (const paludis::SyncFailedError & e)
+                {
+                    res = "sync_error:" + e.message();
+                }
+                catch (...)
+                {
+                    res = "unknown";
+                }
+
+                // om->succeeded();
+                // om->flush();
+                // om->nothing_more_to_come();
+                return new std::string(res);
             }),
         );
         String::from((*temp).to_str().expect("str conversion goes wrong"))
@@ -889,6 +974,151 @@ pub fn paludis_metadata_value_string(k: SharedPtr<u64>) -> String {
     }
 }
 
+pub fn paludis_metadata_value_map(k: SharedPtr<u64>) -> HashMap<String, String> {
+    let mut res = HashMap::new();
+
+    unsafe {
+        let temp: Box<CxxVector<CxxString>> = Box::from_raw(
+            cpp!([k as "std::shared_ptr<paludis::MetadataKey>"] -> *mut CxxVector<CxxString> as "std::vector<std::string>*" {
+                class MetadataVisitor {
+                public:
+                  MetadataVisitor() {}
+
+                  std::vector<std::string> visit(const paludis::MetadataValueKey<std::string> &) {
+                    return {};
+                  }
+
+                  std::vector<std::string> visit(const paludis::MetadataValueKey<paludis::Slot> &) {
+                    return {};
+                  }
+
+                  std::vector<std::string> visit(const paludis::MetadataValueKey<long> &) {
+                    return {};
+                  }
+
+                  std::vector<std::string> visit(const paludis::MetadataValueKey<bool> &) {
+                    return {};
+                  }
+
+                  std::vector<std::string> visit(const paludis::MetadataValueKey<paludis::FSPath> &) {
+                    return {};
+                  }
+
+                  std::vector<std::string> visit(const paludis::MetadataValueKey<
+                                     std::shared_ptr<const paludis::PackageID>> &) {
+                    return {};
+                  }
+
+                  std::vector<std::string> visit(const paludis::MetadataTimeKey &) {
+                    return {};
+                  }
+
+                  std::vector<std::string> visit(
+                      const paludis::MetadataValueKey<std::shared_ptr<const paludis::Choices>>
+                          &) {
+                    return {};
+                  }
+
+                  std::vector<std::string>
+                  visit(const paludis::MetadataSpecTreeKey<paludis::PlainTextSpecTree> &) {
+                    return {};
+                  }
+
+                  std::vector<std::string> visit(
+                      const paludis::MetadataSpecTreeKey<paludis::RequiredUseSpecTree> &) {
+                    return {};
+                  }
+
+                  std::vector<std::string>
+                  visit(const paludis::MetadataSpecTreeKey<paludis::LicenseSpecTree> &) {
+                    return {};
+                  }
+
+                  std::vector<std::string>
+                  visit(const paludis::MetadataSpecTreeKey<paludis::SimpleURISpecTree> &) {
+                    return {};
+                  }
+
+                  std::vector<std::string> visit(
+                      const paludis::MetadataSpecTreeKey<paludis::DependencySpecTree> &) {
+                    return {};
+                  }
+
+                  std::vector<std::string>
+                  visit(const paludis::MetadataSpecTreeKey<paludis::FetchableURISpecTree>
+                            &) {
+                    return {};
+                  }
+
+                  std::vector<std::string>
+                  visit(const paludis::MetadataCollectionKey<paludis::KeywordNameSet> &) {
+                    return {};
+                  }
+
+                  std::vector<std::string> visit(
+                      const paludis::MetadataCollectionKey<paludis::Set<std::string>> &) {
+                    return {};
+                  }
+
+                  std::vector<std::string> visit(const paludis::MetadataCollectionKey<
+                                     paludis::Map<std::string, std::string>> &key) {
+                    std::vector<std::string> res = {};
+                    for (const auto &p : *(key.parse_value())){
+                        res.push_back(p.first);
+                        res.push_back(p.second);
+                    }
+
+                    return res;
+                  }
+
+                  std::vector<std::string>
+                  visit(const paludis::MetadataCollectionKey<paludis::Sequence<std::string>> &) {
+                    return {};
+                  }
+
+                  std::vector<std::string>
+                  visit(const paludis::MetadataCollectionKey<paludis::Maintainers> &) {
+                    return {};
+                  }
+
+                  std::vector<std::string>
+                  visit(const paludis::MetadataCollectionKey<paludis::FSPathSequence> &) {
+                    return {};
+                  }
+
+                  std::vector<std::string> visit(const paludis::MetadataCollectionKey<paludis::PackageIDSequence> &) {
+                    return {};
+                  }
+
+                  std::vector<std::string> visit(const paludis::MetadataSectionKey &) {
+                    return {};
+                  }
+                };
+
+                MetadataVisitor v = MetadataVisitor();
+                std::vector<std::string> res = k->accept_returning<std::vector<std::string>>(v);
+                return new std::vector<std::string>(res);
+            }),
+        );
+
+        let raw = (*temp)
+            .into_iter()
+            .map(|e| match (*e).to_str() {
+                Ok(s) => Some(String::from(s)),
+                Err(_) => None,
+            })
+            .flatten()
+            .collect::<Vec<String>>();
+
+        let mut map = raw.into_iter();
+        while let (Some(key), Some(value)) = (map.next(), map.next()) {
+            res.insert(key, value);
+        }
+    }
+
+    res
+}
+
 pub fn paludis_metadata_value_dependencyspectree(k: SharedPtr<u64>) -> SharedPtr<u64> {
     unsafe {
         cpp!([k as "std::shared_ptr<paludis::MetadataKey>"] -> SharedPtr<u64> as "std::shared_ptr<const paludis::spec_tree_internals::BasicNode<paludis::DependencySpecTree>>" {
@@ -1552,3 +1782,32 @@ pub fn paludis_conditional_depspecdata_as_string(c: SharedPtr<u64>) -> String {
         String::from((*temp).to_str().expect("str conversion goes wrong"))
     }
 }
+
+pub fn paludis_output_manager_succeeded(om: SharedPtr<u64>) {
+    unsafe {
+        cpp!([om as "std::shared_ptr<paludis::OutputManager>"] {
+           om->succeeded();
+        });
+    };
+}
+
+pub fn paludis_output_manager_flush(om: SharedPtr<u64>) {
+    unsafe {
+        cpp!([om as "std::shared_ptr<paludis::OutputManager>"] {
+           om->flush();
+        });
+    };
+}
+
+// pub fn paludis_log_set_log_level() {
+//     unsafe {
+//         cpp!([ptr as "const char *"] -> SharedPtr<u64> as "std::shared_ptr<paludis::Environment>" {
+//             try {
+//               return paludis::EnvironmentFactory::get_instance()->create(ptr);
+//             } catch (const std::exception &e) {
+//               std::cerr << "error: \"" << e.what() << "\"\n";
+//               exit(1);
+//             }
+//         })
+//     }
+// }

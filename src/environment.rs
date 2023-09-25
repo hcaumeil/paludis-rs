@@ -1,12 +1,49 @@
+use super::bindings::paludis_environment_create_sync_output_manager;
 use super::bindings::paludis_environment_fetch_repository;
 use super::bindings::paludis_environment_has_repository_named;
 use super::bindings::paludis_environment_new;
 use super::bindings::paludis_environment_repositories_names;
 
+use super::output_manager::*;
 use super::repository::new_repository;
 use super::Repository;
 
 use cxx::SharedPtr;
+
+pub enum OuputExclusivity {
+    // Run in the background, produce no output
+    Background,
+    // Other things may be running at the same time
+    WithOthers,
+    // We are the only thing running
+    Exclusive,
+}
+
+impl Into<u8> for OuputExclusivity {
+    fn into(self) -> u8 {
+        match self {
+            OuputExclusivity::Background => 0,
+            OuputExclusivity::WithOthers => 1,
+            OuputExclusivity::Exclusive => 2,
+        }
+    }
+}
+
+pub struct CreateOutputManagerSyncInfo {
+    pub repository: String,
+    pub ouput_exculivity: OuputExclusivity,
+    pub summary: bool,
+}
+
+impl CreateOutputManagerSyncInfo {
+    pub fn no_output(repository: &str) -> Self {
+        CreateOutputManagerSyncInfo {
+            repository: repository.to_owned(),
+            ouput_exculivity: OuputExclusivity::Background,
+            summary: false,
+        }
+    }
+}
 
 /// Represents a working environment, which contains an available packages database and provides various methods for querying package visibility and options.
 /// Holds a number of [`Repository`] instances.
@@ -57,6 +94,21 @@ impl Environment {
                 &self.ptr, repository,
             )))
         }
+    }
+
+    /// Create an output manager to see repository sync infos.
+    /// Need to be executed with root privilege if it output logs.
+    pub fn create_sync_output_manager(
+        &self,
+        options: CreateOutputManagerSyncInfo,
+    ) -> Option<OutputManager> {
+        paludis_environment_create_sync_output_manager(
+            &self.ptr,
+            &options.repository,
+            options.ouput_exculivity.into(),
+            options.summary,
+        )
+        .map(|oe| new_output_manager(oe))
     }
 }
 

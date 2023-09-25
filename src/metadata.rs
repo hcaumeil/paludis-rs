@@ -1,4 +1,5 @@
 use core::panic;
+use std::collections::HashMap;
 
 use cxx::SharedPtr;
 
@@ -10,6 +11,7 @@ use super::bindings::paludis_metadata_raw_name;
 use super::bindings::paludis_metadata_type;
 use super::bindings::paludis_metadata_type_str;
 use super::bindings::paludis_metadata_value_dependencyspectree;
+use super::bindings::paludis_metadata_value_map;
 use super::bindings::paludis_metadata_value_str;
 use super::bindings::paludis_metadata_value_string;
 use super::bindings::paludis_metadata_value_type;
@@ -121,9 +123,10 @@ impl MetadataKey {
                     paludis_metadata_value_dependencyspectree(self.ptr.to_owned()),
                 ))
             }
+            16 => MetadataValue::Map(paludis_metadata_value_map(self.ptr.clone())),
             t => {
-                // MetadataValue::String(t.to_string() + " " + &self.value_str())
-                panic!("panic: unable to match MetadataValue type")
+                MetadataValue::String(t.to_string() + " " + &self.value_str())
+                // panic!("panic: unable to match MetadataValue type")
             }
         }
     }
@@ -140,4 +143,5 @@ pub enum MetadataValue {
     String(String),
     Slot,
     DependencySpecTree(DependencySpecTree),
+    Map(HashMap<String, String>),
 }
